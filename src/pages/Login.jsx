@@ -36,7 +36,7 @@ export default function Login({ onLogin }) {
         <div className="absolute bottom-24 right-10 h-64 w-64 rounded-full bg-cjorange-500 opacity-10 blur-3xl" />
         <div className="relative">
           <div className="flex items-center gap-3">
-            <BrandMark size={34} />
+            <BrandMark size={34} plate />
             <p className="text-2xl font-bold tracking-tight text-white">
               Fresh<span className="text-brand-500">Watch</span>
             </p>

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Tag, AlertTriangle, Wallet, Trash2, Check, Minus, Plus,
   LineChart as LineIcon, Loader2, PartyPopper, CloudRain, Clock, MoonStar, EyeOff, ChevronDown,
-  Timer, Zap, ArrowDownWideNarrow, CalendarOff,
+  Timer, Zap, ArrowDownWideNarrow, CalendarOff, ShieldCheck, UserCheck, X,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { Panel, Kpi, DayTag, UrgencyBar, Skeleton, ErrorBox, Empty, Button, useAsync } from "../components/ui";
 import DetailModal from "../components/DetailModal";
-import { getSummary, getRecommendations, approve, getSkipped } from "../lib/api";
+import { getSummary, getRecommendations, approve, getSkipped, APPROVAL_THRESHOLD } from "../lib/api";
 import { won, man, discounted } from "../lib/format";
 
 const tip = { borderRadius: 12, border: "1px solid #cbd5e1", fontSize: 12, boxShadow: "0 4px 14px rgba(0,0,0,.10)", background: "#ffffff", color: "#0f172a" };
@@ -61,19 +61,24 @@ function Row({ item, selected, onToggle, rate, onRate, onOpen }) {
             {won(price)}<span className="ml-1.5 text-xs font-bold text-brand-600">−{rate}%</span>
           </p>
           <div className="mt-1.5 inline-flex overflow-hidden rounded-lg border border-slate-200">
-            <button onClick={() => onRate(Math.max(0, rate - 5))} disabled={rate <= 0}
+            <button onClick={() => onRate(Math.max(0, rate - 1))} disabled={rate <= 0}
                     className="px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"><Minus size={13} /></button>
-            <button onClick={() => onRate(Math.min(40, rate + 5))} disabled={rate >= 40}
+            <button onClick={() => onRate(Math.min(40, rate + 1))} disabled={rate >= 40}
                     className="border-l border-slate-200 px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"><Plus size={13} /></button>
           </div>
           {rate !== recRate && <p className="mt-1 text-[11px] font-medium text-cjorange-600">추천 {recRate}%에서 조정</p>}
+          {rate > APPROVAL_THRESHOLD && (
+            <p className="mt-1 flex items-center justify-end gap-1 text-[11px] font-semibold text-brand-600">
+              <ShieldCheck size={11} /> 점장 승인 필요
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export default function Home({ storeId, onToast, approved, onApprove, rates, setRates, onItemsLoaded }) {
+export default function Home({ storeId, onToast, approved, onApprove, rates, setRates, onItemsLoaded, role, pendingMgr, onMgrDecision }) {
   const s = useAsync(() => getSummary(storeId), [storeId]);
   const r = useAsync(() => getRecommendations(storeId), [storeId]);
   const [filter, setFilter] = useState("all");
@@ -121,11 +126,12 @@ export default function Home({ storeId, onToast, approved, onApprove, rates, set
   /* 시간이 갈수록 추천 상향: 마감 3시간 전부터 1시간마다 +5%p */
   const escalation = Math.min(Math.max(Math.floor((180 - remain) / 60) + 1, 0), 3) * 5;
   const nextStepIn = remain > 0 ? remain % 60 || 60 : 0;
+  const canApprove = !!role?.canPolicy;
   const closingRate = (i) => Math.min(40, Math.round(i.recommended_rate * 100) + (i.days_until_expiry === 0 ? escalation : 0));
 
   const all = r.data ?? [];
   useEffect(() => { if (r.data) onItemsLoaded(r.data); }, [r.data]); // eslint-disable-line
-  const pending = all.filter((i) => !approved.has(i.product_id));
+  const pending = all.filter((i) => !approved.has(i.product_id) && !pendingMgr.has(i.product_id));
   const selected = sel ?? new Set(pending.map((i) => i.product_id));
   const rateOf = (i) => rates[i.product_id] ?? (closingMode ? closingRate(i) : Math.round(i.recommended_rate * 100));
   const d = s.data;
@@ -214,8 +220,11 @@ export default function Home({ storeId, onToast, approved, onApprove, rates, set
     try {
       const payload = targets.map((i) => ({ product_id: i.product_id, approved_rate: 0.4, recommended_rate: i.recommended_rate }));
       await approve(storeId, payload);
-      onApprove(targets.map((i) => ({ ...i, rate: 40 })));
-      onToast({ title: `D-Day ${targets.length}건 상한 적용`, desc: "40% 할인으로 ESL 전송 요청됨" });
+      const r = onApprove(targets.map((i) => ({ ...i, rate: 40 })));
+      onToast({
+        title: `D-Day ${targets.length}건 상한 적용`,
+        desc: r?.escalate ? `40% 할인 ${r.escalate}건은 점장 최종 승인 대기` : "ESL 전송 요청됨",
+      });
     } catch (e) {
       onToast({ tone: "error", title: "적용 실패", desc: e.message });
     }
@@ -229,10 +238,17 @@ export default function Home({ storeId, onToast, approved, onApprove, rates, set
       const payload = targets.map((i) => ({
         product_id: i.product_id, approved_rate: rateOf(i) / 100, recommended_rate: i.recommended_rate,
       }));
-      const res = await approve(storeId, payload);
-      onApprove(targets.map((i) => ({ ...i, rate: rateOf(i) })));
+      await approve(storeId, payload);
+      const r = onApprove(targets.map((i) => ({ ...i, rate: rateOf(i) })));
       setSel(null);
-      onToast({ title: `${res.approved}건 승인 완료`, desc: `ESL 전송 ${res.esl_sent}건 · 실패 ${res.esl_failed}건` });
+      if (r?.escalate) {
+        onToast({
+          title: `${r.direct}건 승인 완료 · ${r.escalate}건 점장 결재 요청`,
+          desc: `${APPROVAL_THRESHOLD}% 초과 할인은 점장 최종 승인 후 반영됩니다`,
+        });
+      } else {
+        onToast({ title: `${r?.direct ?? targets.length}건 승인 완료`, desc: "ESL 전송 요청됨" });
+      }
     } catch (e) {
       onToast({ tone: "error", title: "승인 실패", desc: e.message });
     }
@@ -446,6 +462,56 @@ export default function Home({ storeId, onToast, approved, onApprove, rates, set
           </p>
         </Panel>
       </div>
+
+      {pendingMgr.size > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-brand-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100 bg-brand-50 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={15} className="text-brand-600" />
+              <p className="text-sm font-bold text-brand-700">점장 최종 승인 대기 {pendingMgr.size}건</p>
+              <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-600">
+                {APPROVAL_THRESHOLD}% 초과 할인
+              </span>
+            </div>
+            {canApprove ? (
+              <div className="flex gap-2">
+                <button onClick={() => onMgrDecision([...pendingMgr.keys()], false)}
+                        className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                  전체 반려
+                </button>
+                <button onClick={() => { onMgrDecision([...pendingMgr.keys()], true); onToast({ title: `${pendingMgr.size}건 최종 승인`, desc: "ESL 전송 요청됨" }); }}
+                        className="rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-white active:scale-95">
+                  전체 승인
+                </button>
+              </div>
+            ) : (
+              <span className="text-[11px] font-medium text-slate-500">점장 계정으로 로그인해야 승인할 수 있습니다</span>
+            )}
+          </div>
+          {[...pendingMgr.values()].map((i) => (
+            <div key={i.product_id} className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-3 last:border-0">
+              <UserCheck size={14} className="shrink-0 text-slate-400" />
+              <span className="w-44 shrink-0 truncate text-sm font-semibold">{i.product_name}</span>
+              <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand-600">−{i.rate}%</span>
+              <span className="min-w-0 flex-1 text-xs text-slate-500">
+                {i.requested_by} 요청 · 재고 {i.stock_quantity}개 · 미판매 시 손실 {man(i.expected_loss)}만원
+              </span>
+              {canApprove && (
+                <span className="flex gap-1.5">
+                  <button onClick={() => onMgrDecision([i.product_id], false)}
+                          className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-50" title="반려">
+                    <X size={13} />
+                  </button>
+                  <button onClick={() => { onMgrDecision([i.product_id], true); onToast({ title: "최종 승인", desc: i.product_name }); }}
+                          className="rounded-lg bg-brand-600 p-1.5 text-white active:scale-95" title="승인">
+                    <Check size={13} strokeWidth={3} />
+                  </button>
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

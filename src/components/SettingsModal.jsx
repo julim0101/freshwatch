@@ -15,7 +15,7 @@ function Field({ label, desc, children }) {
   );
 }
 
-function Stepper({ value, onChange, min = 0, max = 40, step = 5, unit = "%" }) {
+function Stepper({ value, onChange, min = 0, max = 40, step = 1, unit = "%" }) {
   return (
     <div className="flex items-center gap-2">
       <span className="w-14 text-right text-base font-bold">{value}{unit}</span>
@@ -76,6 +76,9 @@ export default function SettingsModal({ storeId, onClose, onToast }) {
           </p>
           <Field label="마감 할인 시작" desc="이 시각 이후 D-Day 상품에 상한 할인 적용">
             <Stepper value={p.closing_hour} onChange={(v) => set("closing_hour", v)} min={16} max={23} step={1} unit="시" />
+          </Field>
+          <Field label="2단 결재 임계값" desc="이 할인율을 초과하면 담당자 승인 후 점장 최종 승인이 필요합니다">
+            <Stepper value={p.two_step_over} onChange={(v) => set("two_step_over", v)} max={p.max_discount} />
           </Field>
           <Field label="자동 승인 임계값" desc="이 할인율 이하는 승인 없이 자동 반영 (0 = 사용 안 함)">
             <Stepper value={p.auto_approve_under} onChange={(v) => set("auto_approve_under", v)} max={p.max_discount} />

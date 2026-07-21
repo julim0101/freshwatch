@@ -18,7 +18,7 @@ import PdaModal from "./components/PdaModal";
 import SettingsModal from "./components/SettingsModal";
 import { Toast, BrandMark } from "./components/ui";
 import { BRAND } from "./lib/brand";
-import { getNotifications, ROLES } from "./lib/api";
+import { getNotifications, ROLES, APPROVAL_THRESHOLD } from "./lib/api";
 
 const NAV = [
   { key: "home", label: "폐기위험 대응", icon: AlertTriangle, desc: "AI 추천 검토·승인", group: "점포" },
@@ -65,10 +65,43 @@ export default function App() {
   const [rates, setRates] = useState({});
   const [items, setItems] = useState([]);
 
+  /* 2단 결재: 임계값 이하는 담당자 승인으로 확정, 초과는 점장 승인 대기 */
+  const [pendingMgr, setPendingMgr] = useState(new Map());
+
   const handleApprove = (list) => {
-    setApproved((prev) => {
+    const direct = list.filter((i) => i.rate <= APPROVAL_THRESHOLD);
+    const escalate = list.filter((i) => i.rate > APPROVAL_THRESHOLD);
+    if (direct.length) {
+      setApproved((prev) => {
+        const next = new Map(prev);
+        direct.forEach((i) => next.set(i.product_id, { rate: i.rate, name: i.product_name, esl: i.esl_applicable }));
+        return next;
+      });
+    }
+    if (escalate.length) {
+      setPendingMgr((prev) => {
+        const next = new Map(prev);
+        escalate.forEach((i) => next.set(i.product_id, { ...i, requested_by: auth?.user?.name ?? "담당자" }));
+        return next;
+      });
+    }
+    return { direct: direct.length, escalate: escalate.length };
+  };
+
+  const handleMgrDecision = (ids, ok) => {
+    setPendingMgr((prev) => {
       const next = new Map(prev);
-      list.forEach((i) => next.set(i.product_id, { rate: i.rate, name: i.product_name, esl: i.esl_applicable }));
+      ids.forEach((id) => {
+        const item = next.get(id);
+        if (ok && item) {
+          setApproved((a) => {
+            const m = new Map(a);
+            m.set(id, { rate: item.rate, name: item.product_name, esl: item.esl_applicable });
+            return m;
+          });
+        }
+        next.delete(id);
+      });
       return next;
     });
   };
@@ -92,6 +125,7 @@ export default function App() {
   const changeStore = (id) => {
     setStoreId(id);
     setApproved(new Map());
+    setPendingMgr(new Map());
     setRates({});
     setStoreOpen(false);
   };
@@ -99,7 +133,7 @@ export default function App() {
   const role = ROLES[auth.role] ?? ROLES.manager;
   const allowed = (k) => role.scope.includes(k);
   const store = auth.stores.find((s) => s.store_id === storeId) ?? auth.stores[0];
-  const pendingCount = Math.max(items.length - approved.size, 0);
+  const pendingCount = Math.max(items.length - approved.size - pendingMgr.size, 0);
   const current = NAV.find((n) => n.key === tab);
 
   const NavList = () => (
@@ -138,7 +172,7 @@ export default function App() {
       <aside className="hidden w-56 shrink-0 flex-col bg-slate-900 py-6 lg:flex">
         <div className="px-6 pb-8">
           <div className="flex items-center gap-2.5">
-            <BrandMark size={26} />
+            <BrandMark size={26} plate />
             <p className="text-lg font-bold tracking-tight text-white">
               Fresh<span className="text-brand-500">Watch</span>
             </p>
@@ -163,7 +197,7 @@ export default function App() {
           <div className="absolute left-0 top-0 flex h-full w-64 flex-col bg-slate-900 py-6">
             <div className="flex items-center justify-between px-6 pb-4">
               <span className="flex items-center gap-2 text-lg font-bold text-white">
-                <BrandMark size={22} />Fresh<span className="text-brand-500">Watch</span>
+                <BrandMark size={22} plate />Fresh<span className="text-brand-500">Watch</span>
               </span>
               <button onClick={() => setOpenMenu(false)} className="text-slate-400"><X size={20} /></button>
             </div>
@@ -315,7 +349,8 @@ export default function App() {
         <main className="flex-1 p-5 lg:p-8">
           {tab === "home" && (
             <Home storeId={storeId} onToast={fire} approved={approved} onApprove={handleApprove}
-                  rates={rates} setRates={setRates} onItemsLoaded={setItems} />
+                  rates={rates} setRates={setRates} onItemsLoaded={setItems}
+                  role={role} pendingMgr={pendingMgr} onMgrDecision={handleMgrDecision} />
           )}
           {tab === "hist" && <History storeId={storeId} onToast={fire} />}
           {tab === "hq" && <Hq onPickStore={(id) => { changeStore(id); setTab("home"); }} />}
@@ -374,7 +409,7 @@ export default function App() {
 
       {setOpen && <SettingsModal storeId={storeId} onClose={() => setSetOpen(false)} onToast={fire} />}
       {pdaOpen && (
-        <PdaModal items={items} approvedIds={new Set(approved.keys())} onApprove={handleApprove}
+        <PdaModal items={items} approvedIds={new Set([...approved.keys(), ...pendingMgr.keys()])} onApprove={handleApprove}
                   onClose={() => setPdaOpen(false)} onToast={fire} />
       )}
       <Toast show={!!toast} tone={toast?.tone} title={toast?.title} desc={toast?.desc} />

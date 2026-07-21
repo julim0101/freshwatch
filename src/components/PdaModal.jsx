@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ScanLine, Check, ChevronLeft, Wifi, WifiOff, Battery, Signal, CloudUpload, Loader2 } from "lucide-react";
 import { won, man, discounted } from "../lib/format";
+import { APPROVAL_THRESHOLD } from "../lib/api";
 import { BrandMark } from "./ui";
 
 /* 현장 PDA 모드 — 매대에서 상품을 스캔해 즉시 승인하는 화면 */
@@ -29,8 +30,12 @@ export default function PdaModal({ items, approvedIds, onApprove, onClose, onToa
       setQueue((q) => [...q, { ...picked, rate }]);
       onToast({ title: "오프라인 저장됨", desc: `${picked.product_name} · 연결 복구 시 자동 전송` });
     } else {
-      onApprove([{ ...picked, rate }]);
-      onToast({ title: "ESL 반영 완료", desc: `${picked.product_name} · ${rate}% 할인` });
+      const r = onApprove([{ ...picked, rate }]);
+      if (r?.escalate) {
+        onToast({ title: "점장 결재 요청됨", desc: `${picked.product_name} · ${rate}% (${APPROVAL_THRESHOLD}% 초과)` });
+      } else {
+        onToast({ title: "ESL 반영 완료", desc: `${picked.product_name} · ${rate}% 할인` });
+      }
     }
     setPicked(null);
   };
@@ -118,13 +123,13 @@ export default function PdaModal({ items, approvedIds, onApprove, onClose, onToa
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    <button onClick={() => setRate(Math.max(0, rate - 5))}
+                    <button onClick={() => setRate(Math.max(0, rate - 1))}
                             className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 active:scale-95">
-                      −5%
+                      −1%
                     </button>
-                    <button onClick={() => setRate(Math.min(40, rate + 5))}
+                    <button onClick={() => setRate(Math.min(40, rate + 1))}
                             className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 active:scale-95">
-                      +5%
+                      +1%
                     </button>
                   </div>
 
@@ -143,7 +148,7 @@ export default function PdaModal({ items, approvedIds, onApprove, onClose, onToa
 
                 <button onClick={approve}
                         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 py-4 text-base font-bold text-white shadow-lg active:scale-95">
-                  <Check size={18} strokeWidth={3} /> 승인 · ESL 반영
+                  <Check size={18} strokeWidth={3} /> {rate > APPROVAL_THRESHOLD ? "점장 결재 요청" : "승인 · ESL 반영"}
                 </button>
               </div>
             ) : (

@@ -27,8 +27,10 @@ export default function Esg({ scope = "store" }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi loading={loading} index={0} tone="ok" label="감축 폐기물" value={d && (d.saved_waste_kg / 1000).toFixed(1)} unit="톤" icon={Leaf} sub="5개월 누적" />
         <Kpi loading={loading} index={1} tone="ok" label="탄소 감축" value={d && (d.saved_co2e_kg / 1000).toFixed(1)} unit="tCO₂e" icon={Leaf} sub="폐기 감축분 환산" />
-        <Kpi loading={loading} index={2} label="소나무 환산" value={d?.equivalents.trees.toLocaleString()} unit="그루" icon={TreePine} sub="30년생 소나무 연간 흡수량 기준" />
-        <Kpi loading={loading} index={3} label="승용차 주행 환산" value={d && Math.round(d.equivalents.car_km / 1000).toLocaleString()} unit="천km" icon={Car} sub="중형차 기준" />
+        <Kpi loading={loading} index={2} label="탄소 집약도" value={d && (d.saved_co2e_kg / d.saved_waste_kg).toFixed(1)} unit="kgCO₂e/kg" icon={Leaf}
+             sub="감축 폐기물 1kg당 탄소 감축량" />
+        <Kpi loading={loading} index={3} label="감축목표 달성률" value={d && Math.round((d.target.current / d.target.goal) * 100)} unit="%" icon={Target}
+             sub={d && `현재 ${Math.round(d.target.current * 100)}% / 목표 ${Math.round(d.target.goal * 100)}%`} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -107,7 +109,7 @@ export default function Esg({ scope = "store" }) {
         </div>
       </Panel>
 
-      <Panel title="환산 지표">
+      <Panel title="환산 지표" right={<span className="text-[11px] text-slate-400">감축량을 체감 단위로 환산</span>}>
         {loading ? <Skeleton className="h-20 w-full" /> : (
           <div className="grid gap-4 sm:grid-cols-3">
             {[

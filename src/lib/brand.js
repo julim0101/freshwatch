@@ -13,6 +13,6 @@ export const BRAND = {
   client: "롯데마트",
   clientRole: "고객사",
   project: "KT AIVLE School 9기 · 수도권 06반 17조",
-  version: "v0.6",
-  clientLogo: "lotte-mart.png",   // public 폴더 기준
+  version: "v0.7",
+  clientLogo: "",   // public/파일명.png 를 지정하면 그 이미지가 우선 사용됩니다 (비우면 내장 심볼)
 };

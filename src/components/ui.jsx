@@ -3,12 +3,12 @@ import { BRAND } from "../lib/brand";
 
 /* ---------- 브랜드 심볼 ----------
    public/lotte-mart.png 이 있으면 그 이미지를, 없으면 내장 심볼을 표시합니다. */
-export function BrandMark({ size = 22, className = "" }) {
+export function BrandMark({ size = 22, className = "", plate = false }) {
   const [useImg, setUseImg] = useState(true);
   const src = (import.meta.env.BASE_URL || "/") + (BRAND.clientLogo || "");
 
   if (useImg && BRAND.clientLogo) {
-    return (
+    const img = (
       <img
         src={src}
         alt=""
@@ -19,13 +19,29 @@ export function BrandMark({ size = 22, className = "" }) {
         aria-hidden="true"
       />
     );
+    /* 어두운 배경에서 로고 테두리가 뭉개지지 않도록 흰 배경판을 깝니다 */
+    return plate ? (
+      <span
+        className="flex shrink-0 items-center justify-center rounded-[9px] bg-white"
+        style={{ width: size + 8, height: size + 8 }}
+      >
+        {img}
+      </span>
+    ) : (
+      img
+    );
   }
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" className={`shrink-0 ${className}`} aria-hidden="true">
-      <rect x="5.5" y="5.5" width="21" height="21" rx="6.5" transform="rotate(45 16 16)" fill="#E60012" />
-      <path d="M16.2 9.2c-2.6 0-3.6 3.2-3.2 6.6.4 3.4 1.9 6.2 4 6.2 1.6 0 2.7-1.1 3.5-2.4"
-            stroke="#fff" strokeWidth="1.9" strokeLinecap="round" fill="none" />
-      <circle cx="12.6" cy="21.6" r="1.15" fill="#fff" />
+    <svg width={size} height={size} viewBox="0 0 64 64" className={`shrink-0 ${className}`} aria-hidden="true">
+      <path
+        d="M32 4 C 38 4 42 6 46.5 10.5 L 53.5 17.5 C 58 22 60 26 60 32 C 60 38 58 42 53.5 46.5 L 46.5 53.5 C 42 58 38 60 32 60 C 26 60 22 58 17.5 53.5 L 10.5 46.5 C 6 42 4 38 4 32 C 4 26 6 22 10.5 17.5 L 17.5 10.5 C 22 6 26 4 32 4 Z"
+        fill="#ED1B2F"
+      />
+      <path
+        d="M44.5 38.5 C 42.6 44.2 37.6 47.6 33.6 44.8 C 29.6 42 26.9 34.6 26.3 27.6 C 25.7 20.5 27.8 14.4 32.2 14.4 C 36.6 14.4 38.9 20.4 37.2 27.2 C 35.4 34.4 31.8 40.6 31 45.4"
+        fill="none" stroke="#fff" strokeWidth="4.1" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <circle cx="23.4" cy="45.2" r="2.9" fill="#fff" />
     </svg>
   );
 }

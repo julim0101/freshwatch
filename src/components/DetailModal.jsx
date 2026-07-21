@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceDot, ReferenceLine,
   ComposedChart, Bar,
 } from "recharts";
-import { profitCurve, getForecast } from "../lib/api";
+import { profitCurve, getForecast, APPROVAL_THRESHOLD } from "../lib/api";
 import { won, man, discounted } from "../lib/format";
 import { Skeleton, Button, DayTag, useAsync } from "./ui";
 
@@ -62,7 +62,7 @@ export default function DetailModal({ item, rate, onRate, onClose, onApprove }) 
             </div>
 
             <input
-              type="range" min="0" max="40" step="5" value={rate}
+              type="range" min="0" max="40" step="1" value={rate}
               onChange={(e) => onRate(+e.target.value)}
               className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
             />
@@ -71,6 +71,11 @@ export default function DetailModal({ item, rate, onRate, onClose, onApprove }) 
               <span className="font-semibold text-slate-500">30% 반응 시작</span>
               <span className="font-semibold text-brand-600">40% 상한</span>
             </div>
+            {rate > APPROVAL_THRESHOLD && (
+              <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-brand-50 px-3 py-2 text-[11px] font-medium text-brand-700">
+                <Check size={12} /> {APPROVAL_THRESHOLD}% 초과 할인입니다. 담당자 승인 후 <b>점장 최종 승인</b>을 거쳐 반영됩니다.
+              </p>
+            )}
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -161,7 +166,7 @@ export default function DetailModal({ item, rate, onRate, onClose, onApprove }) 
           </p>
           <div className="flex gap-2">
             <Button onClick={() => onRate(recRate)}>추천값으로 되돌리기</Button>
-            <Button variant="primary" onClick={onApprove}><Check size={15} /> 이 가격으로 승인</Button>
+            <Button variant="primary" onClick={onApprove}><Check size={15} /> {rate > APPROVAL_THRESHOLD ? "이 가격으로 결재 요청" : "이 가격으로 승인"}</Button>
           </div>
         </div>
       </div>

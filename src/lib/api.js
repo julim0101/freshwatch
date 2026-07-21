@@ -227,8 +227,12 @@ export async function getNotifications(storeId) {
 }
 
 /* ---------- 정책 설정 ---------- */
+/* 2단 결재 임계값: 이 값을 초과하는 할인은 담당자 승인 후 점장 최종 승인이 필요합니다 */
+export const APPROVAL_THRESHOLD = 30;
+
 export const DEFAULT_POLICY = {
   max_discount: 40,
+  two_step_over: 30,
   step_d2: 20, step_d1: 30, step_d0: 40,
   closing_hour: 20,
   auto_approve_under: 0,
