@@ -1,4 +1,34 @@
 import { useEffect, useRef, useState } from "react";
+import { BRAND } from "../lib/brand";
+
+/* ---------- 브랜드 심볼 ----------
+   public/lotte-mart.png 이 있으면 그 이미지를, 없으면 내장 심볼을 표시합니다. */
+export function BrandMark({ size = 22, className = "" }) {
+  const [useImg, setUseImg] = useState(true);
+  const src = (import.meta.env.BASE_URL || "/") + (BRAND.clientLogo || "");
+
+  if (useImg && BRAND.clientLogo) {
+    return (
+      <img
+        src={src}
+        alt=""
+        width={size}
+        height={size}
+        onError={() => setUseImg(false)}
+        className={`shrink-0 object-contain ${className}`}
+        aria-hidden="true"
+      />
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" className={`shrink-0 ${className}`} aria-hidden="true">
+      <rect x="5.5" y="5.5" width="21" height="21" rx="6.5" transform="rotate(45 16 16)" fill="#E60012" />
+      <path d="M16.2 9.2c-2.6 0-3.6 3.2-3.2 6.6.4 3.4 1.9 6.2 4 6.2 1.6 0 2.7-1.1 3.5-2.4"
+            stroke="#fff" strokeWidth="1.9" strokeLinecap="round" fill="none" />
+      <circle cx="12.6" cy="21.6" r="1.15" fill="#fff" />
+    </svg>
+  );
+}
 
 /* ---------- 스켈레톤 ---------- */
 export function Skeleton({ className = "" }) {

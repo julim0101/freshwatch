@@ -16,7 +16,7 @@ import Performance from "./pages/Performance";
 import EslModal from "./components/EslModal";
 import PdaModal from "./components/PdaModal";
 import SettingsModal from "./components/SettingsModal";
-import { Toast } from "./components/ui";
+import { Toast, BrandMark } from "./components/ui";
 import { BRAND } from "./lib/brand";
 import { getNotifications, ROLES } from "./lib/api";
 
@@ -137,12 +137,8 @@ export default function App() {
       {/* 사이드바 */}
       <aside className="hidden w-56 shrink-0 flex-col bg-slate-900 py-6 lg:flex">
         <div className="px-6 pb-8">
-          <div className="flex items-center gap-2">
-            <span className="flex gap-0.5" aria-hidden="true">
-              <span className="h-2 w-2 rounded-full bg-brand-500" />
-              <span className="h-2 w-2 rounded-full bg-cjorange-500" />
-              <span className="h-2 w-2 rounded-full bg-cjblue-500" />
-            </span>
+          <div className="flex items-center gap-2.5">
+            <BrandMark size={26} />
             <p className="text-lg font-bold tracking-tight text-white">
               Fresh<span className="text-brand-500">Watch</span>
             </p>
@@ -166,7 +162,9 @@ export default function App() {
           <div className="absolute inset-0 bg-slate-900/50" onClick={() => setOpenMenu(false)} />
           <div className="absolute left-0 top-0 flex h-full w-64 flex-col bg-slate-900 py-6">
             <div className="flex items-center justify-between px-6 pb-4">
-              <span className="text-lg font-bold text-white">Fresh<span className="text-brand-500">Watch</span></span>
+              <span className="flex items-center gap-2 text-lg font-bold text-white">
+                <BrandMark size={22} />Fresh<span className="text-brand-500">Watch</span>
+              </span>
               <button onClick={() => setOpenMenu(false)} className="text-slate-400"><X size={20} /></button>
             </div>
             <NavList />

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Store, Loader2, ArrowRight } from "lucide-react";
 import { login, getStores, ROLES } from "../lib/api";
 import { BRAND } from "../lib/brand";
+import { BrandMark } from "../components/ui";
 
 export default function Login({ onLogin }) {
   const [id, setId] = useState("lim.jw");
@@ -34,12 +35,8 @@ export default function Login({ onLogin }) {
         <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-cjblue-600 opacity-20 blur-3xl" />
         <div className="absolute bottom-24 right-10 h-64 w-64 rounded-full bg-cjorange-500 opacity-10 blur-3xl" />
         <div className="relative">
-          <div className="flex items-center gap-2.5">
-            <span className="flex gap-1" aria-hidden="true">
-              <span className="h-2.5 w-2.5 rounded-full bg-brand-500" />
-              <span className="h-2.5 w-2.5 rounded-full bg-cjorange-500" />
-              <span className="h-2.5 w-2.5 rounded-full bg-cjblue-500" />
-            </span>
+          <div className="flex items-center gap-3">
+            <BrandMark size={34} />
             <p className="text-2xl font-bold tracking-tight text-white">
               Fresh<span className="text-brand-500">Watch</span>
             </p>
@@ -78,8 +75,8 @@ export default function Login({ onLogin }) {
       {/* 우측 폼 */}
       <div className="flex flex-1 items-center justify-center bg-white px-6">
         <form onSubmit={submit} className="w-full max-w-sm">
-          <p className="text-2xl font-bold tracking-tight lg:hidden">
-            Fresh<span className="text-brand-600">Watch</span>
+          <p className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:hidden">
+            <BrandMark size={28} />Fresh<span className="text-brand-600">Watch</span>
           </p>
           <h2 className="mt-2 text-xl font-bold tracking-tight lg:mt-0">로그인</h2>
           <p className="mt-1 text-sm text-slate-500">{BRAND.client} 점포 담당자 계정으로 접속해주세요.</p>

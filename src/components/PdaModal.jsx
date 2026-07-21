@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ScanLine, Check, ChevronLeft, Wifi, WifiOff, Battery, Signal, CloudUpload, Loader2 } from "lucide-react";
 import { won, man, discounted } from "../lib/format";
+import { BrandMark } from "./ui";
 
 /* 현장 PDA 모드 — 매대에서 상품을 스캔해 즉시 승인하는 화면 */
 export default function PdaModal({ items, approvedIds, onApprove, onClose, onToast }) {
@@ -76,11 +77,7 @@ export default function PdaModal({ items, approvedIds, onApprove, onClose, onToa
                   <ChevronLeft size={18} />
                 </button>
               ) : (
-                <span className="flex gap-0.5" aria-hidden="true">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-cjorange-500" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-cjblue-500" />
-                </span>
+                <BrandMark size={18} />
               )}
               <p className="text-sm font-bold">{picked ? "가격 확인" : "FreshWatch 현장"}</p>
               {!picked && (
